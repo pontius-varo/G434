@@ -7,6 +7,7 @@ import json
 
 # Assign incompatible traits
 incompatible_active = False
+incompatible_traits = []
 
 # This script returns all the asset arrays from the subdirectories in Alphabetical order
 # Therefore, instead of assigning all values to different variables, we can just retrieve them from the array returned
@@ -149,7 +150,7 @@ def catchIncompatibles(incompatible_obj, newimage, active):
 def newImage():
 
     # CHANGE IF YOU HAVE DIFFERENT CATEGORIES
-    categories = ["Accesories", "Armor", "Background",
+    categories = ["Accessory", "Armor", "Background",
                   "Hat", "Head", "LeftArm", "RightArm"]
     new_image = {}
 
@@ -157,7 +158,7 @@ def newImage():
         new_image[categories[x]] = random.choices(asset_keys[x], weights[x])[0]
 
     cleaned_image = catchIncompatibles(
-        incompatible_traits, incompatible_active)
+        incompatible_traits, new_image, incompatible_active)
 
     if new_image in all_images:
         return newImage()
@@ -165,15 +166,80 @@ def newImage():
         return cleaned_image
 
 
+def all_images_unique(image_set):
+    seen = list()
+    return not any(i in seen or seen.append(i) for i in image_set)
+
+
+def addTokenID(image_set):
+    # Add token Id to each image
+    i = 0
+    for item in image_set:
+        item["tokenId"] = i
+        i = i + 1
+
+    return image_set
+
+
+def finalizeImages(image_set):
+
+    # Manual open_images for now, need to figure out a way to take the categories (from the file names)
+    # and for each category create an REAL image_set
+    for item in image_set:
+
+        accessory_img = Image.open(
+            f'./Assets/Accessories/{nft_assets[0][item["Accessory"]]}.png').convert('RGBA')
+
+        armor_img = Image.open(
+            f'./Assets/Armor/{nft_assets[1][item["Armor"]]}.png').convert('RGBA')
+
+        background_img = Image.open(
+            f'./Assets/Background/{nft_assets[2][item["Background"]]}.png').convert('RGBA')
+
+        hat_img = Image.open(
+            f'./Assets/Hats/{nft_assets[3][item["Hat"]]}.png').convert('RGBA')
+
+        head_img = Image.open(
+            f'./Assets/Heads/{nft_assets[4][item["Head"]]}.png').convert('RGBA')
+
+        leftarm_img = Image.open(
+            f'./Assets/LeftArm/{nft_assets[5][item["LeftArm"]]}.png').convert('RGBA')
+
+        rightarm_img = Image.open(
+            f'./Assets/RightArm/{nft_assets[6][item["RightArm"]]}.png').convert('RGBA')
+
+        # Create each Composite | Stack Images on top of each other
+        # Consider putting this into a for loop that creates a composite for each category
+        comp1 = Image.alpha_composite(background_img, armor_img)
+        comp2 = Image.alpha_composite(comp1, accessory_img)
+        comp3 = Image.alpha_composite(comp2, rightarm_img)
+        comp4 = Image.alpha_composite(comp3, leftarm_img)
+        comp5 = Image.alpha_composite(comp4, head_img)
+        comp6 = Image.alpha_composite(comp5, hat_img)
+
+        # Convert to RGB
+        rgb_im = comp6.convert('RGB')
+        file_name = str(item["tokenId"]) + ".png"
+        rgb_im.save("./images/" + file_name)
+
+    METADATA_FILENAME = './metadata/all-traits.json'
+    with open(METADATA_FILENAME, 'w') as outfile:
+        json.dump(image_set, outfile, indent=4)
+
+
+# SCRIPT STARTS HERE #
+
+# Assemble assets from ./Assets
 nft_assets = getAssets(path)
 
-# Retrieve Asset keys
+# Retrieve Asset keys from nft_assets
 asset_keys = getAssetKeys(nft_assets)
 
 # Assign weights to keys, prompt the user and have them give input
 weights = getWeights(asset_keys)
 
 # Prompt the User to retrive the amount of nfts to be generated
+# [TODO] 'Catch' user errors (such as submiting a char) and reprompt them
 print("Please give the numerical amount of nfts you want created")
 total_images = int(input("> "))
 
@@ -187,10 +253,15 @@ else:
 # Leave nft image creation here
 all_images = []
 
-
 # Creates all new Images and adds them to all_images
 for i in range(total_images):
 
     new_trait_image = newImage()
 
     all_images.append(new_trait_image)
+
+print("Are all images unique?", all_images_unique(all_images))
+
+all_images_with_ids = addTokenID(all_images)
+
+finalizeImages(all_images_with_ids)

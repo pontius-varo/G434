@@ -1,9 +1,14 @@
 # G434 (Gaea)
 
-A python script commissioned to create a set of NFTs with metadata
+A python script that creates a set of NFTs with metadata, along with adding in customization for the user. Based mostly on Edward Jones' own script, which you can find here:'https://betterprogramming.pub/create-your-own-nft-collection-with-python-82af40abf99f'
 
 Requires the following libraries: PIL, IPython
 
+
+## 1.3 Changelog
+* Created finalizeImages function, which assembles all images in the array passed through and dumps the data from that array into a json file
+* Added all_images_unique function to verify if all images generated are unique
+* Added "Animation" key to "attributes" in token mapping
 
 ## 1.2 ChangeLog
 * Created createIncompatibles, catchIncompatibles, newImage functions
