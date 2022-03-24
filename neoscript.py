@@ -27,6 +27,20 @@ incompatible_traits = []
 
 path = './Assets/'
 
+# Returns category array based on subdirectories in assets
+
+
+def getCategories(path):
+    categories = sorted(os.walk(path))[0][1]
+
+    # "sorted" ensures that they will be returned alphabetically
+    return sorted(categories)
+
+
+# CHANGE IF YOU HAVE DIFFERENT CATEGORIES
+categories = getCategories(path)
+#print(categories)
+
 
 def getAssets(path):
     filedict = []
@@ -69,10 +83,12 @@ def getWeights(keys):
         try:
             # For each key in the key array
             for key in key_array:
+                print(key_array)
                 # Ask the user to give a weight value
-                #print(f'Enter weight value for key {key}')
-                #key_weight = input("> ")
-                key_weight = '10'
+                # print(f'Enter weight value for key {key}')
+                # key_weight = input("> ")
+                print("default weight of 1 set")
+                key_weight = '1'
                 # Add value as an interger
                 key_weights.append(int(key_weight))
 
@@ -86,6 +102,7 @@ def getWeights(keys):
 
 # Should take an object instead of two distinct arrays
 # For example : INCOMPANTIBLE_TRAITS = {"RIGHTARM": ["TRIDENT", "SPEAR"], "LEFTARM": ["TRIDENT", "SPEAR"]}
+# Should be: INCOMPATIBLE_TRAITS = {"MYTRAIT": ["TRAIT", "Trait"], "MYTRAIT": ["TRAIT", "Trait"]}
 # catchTraits should take the key, loop through the subarray and compare them
 #  to the traits being passed through after image generation
 
@@ -119,7 +136,7 @@ def createIncompatibles():
             count += 1
 
         print(
-            f'OK finshed adding {trait_key} with the following incompatible categories its: {incomp_array}')
+            f'OK finshed adding {trait_key} with the following incompatible categories : {incomp_array}')
         incomp[trait_key] = incomp_array
         x += 1
 
@@ -128,14 +145,20 @@ def createIncompatibles():
 
 def catchIncompatibles(incompatible_obj, newimage, active):
 
+    # INCOMPATIBLE_TRAITS = {"MYTRAIT": ["TRAIT", "Trait"], "MYTRAIT": ["TRAIT", "Trait"]}
+
     if(active):
+        # for each 'key' in incompatible_obj
         for trait in incompatible_obj:
+            # for each 'key' in newimage object
             for category in newimage:
+                # if newimage[category] ((VALUE)) == trait
                 if(newimage[category] == trait):
+                    # for value in array (incompatible_obj[trait])
                     for incompatible in incompatible_obj[trait]:
-                        if(newimage[incompatible] != "None"):
+                        if(newimage[category] == incompatible):
                             print(f'BEFORE {newimage}')
-                            newimage[incompatible] = "None"
+                            newimage[category] = "None"
                             print("Incompatible found! Changing...")
                             print(f'AFTER {newimage}')
                         else:
@@ -149,9 +172,8 @@ def catchIncompatibles(incompatible_obj, newimage, active):
 
 def newImage():
 
-    # CHANGE IF YOU HAVE DIFFERENT CATEGORIES
-    categories = ["Accessory", "Armor", "Background",
-                  "Hat", "Head", "LeftArm", "RightArm"]
+    # # CHANGE IF YOU HAVE DIFFERENT CATEGORIES
+    # categories = getCategories(path)
     new_image = {}
 
     for x in range(0, len(categories)):
@@ -163,6 +185,7 @@ def newImage():
     if new_image in all_images:
         return newImage()
     else:
+        print(cleaned_image)
         return cleaned_image
 
 
@@ -185,40 +208,44 @@ def finalizeImages(image_set):
 
     # Manual open_images for now, need to figure out a way to take the categories (from the file names)
     # and for each category create an REAL image_set
+    # This has been handled
+
+    # Potentially, this can be fixed as follows
+    # for each category in categories & asset_num < nft_assets length
+    # name = category + '_img'
+    # data[name] = Image.open(f'./Assets/{category}/{nft_assets[asset_num][item[sub_category]]}.png').convert('RGBA')
+    # then for each key in data
+    # compile all images
+    # Convert to RGBA and export
+
     for item in image_set:
+        asset_num = 0
 
-        accessory_img = Image.open(
-            f'./Assets/Accessories/{nft_assets[0][item["Accessory"]]}.png').convert('RGBA')
+        assembled_image = []
 
-        armor_img = Image.open(
-            f'./Assets/Armor/{nft_assets[1][item["Armor"]]}.png').convert('RGBA')
+        for category in categories:
 
-        background_img = Image.open(
-            f'./Assets/Background/{nft_assets[2][item["Background"]]}.png').convert('RGBA')
+            img_part = Image.open(
+                f'./Assets/{category}/{nft_assets[asset_num][item[category]]}.png').convert('RGBA')
 
-        hat_img = Image.open(
-            f'./Assets/Hats/{nft_assets[3][item["Hat"]]}.png').convert('RGBA')
+            asset_num = asset_num + 1
+            assembled_image.append(img_part)
 
-        head_img = Image.open(
-            f'./Assets/Heads/{nft_assets[4][item["Head"]]}.png').convert('RGBA')
+        def compile_images(composite_1, composite_2):
 
-        leftarm_img = Image.open(
-            f'./Assets/LeftArm/{nft_assets[5][item["LeftArm"]]}.png').convert('RGBA')
+            return Image.alpha_composite(composite_1, composite_2)
 
-        rightarm_img = Image.open(
-            f'./Assets/RightArm/{nft_assets[6][item["RightArm"]]}.png').convert('RGBA')
+        # Final composite base is always first two images
+        final_composite = compile_images(
+            assembled_image[0], assembled_image[1])
 
-        # Create each Composite | Stack Images on top of each other
-        # Consider putting this into a for loop that creates a composite for each category
-        comp1 = Image.alpha_composite(background_img, armor_img)
-        comp2 = Image.alpha_composite(comp1, accessory_img)
-        comp3 = Image.alpha_composite(comp2, rightarm_img)
-        comp4 = Image.alpha_composite(comp3, leftarm_img)
-        comp5 = Image.alpha_composite(comp4, head_img)
-        comp6 = Image.alpha_composite(comp5, hat_img)
+        for x in range(2, len(assembled_image)):
+
+            final_composite = compile_images(
+                final_composite, assembled_image[x])
 
         # Convert to RGB
-        rgb_im = comp6.convert('RGB')
+        rgb_im = final_composite.convert('RGB')
         file_name = str(item["tokenId"]) + ".png"
         rgb_im.save("./images/" + file_name)
 
@@ -228,7 +255,6 @@ def finalizeImages(image_set):
 
 
 # SCRIPT STARTS HERE #
-
 # Assemble assets from ./Assets
 nft_assets = getAssets(path)
 
@@ -263,5 +289,7 @@ for i in range(total_images):
 print("Are all images unique?", all_images_unique(all_images))
 
 all_images_with_ids = addTokenID(all_images)
+
+#print(all_images_with_ids)
 
 finalizeImages(all_images_with_ids)
